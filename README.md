@@ -34,7 +34,7 @@ Copy `.env.example` to `.env.local` and fill in your Supabase credentials.
 ### Supabase setup
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql).
+2. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/catalog.sql`](supabase/catalog.sql) for catalog-wide price tracking.
 3. In **Project Settings → API**, copy:
    - **Project URL** → `SUPABASE_URL` (base URL only, no `/rest/v1/`)
    - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
@@ -77,7 +77,7 @@ Face to Face runs on Shopify. The app reads public JSON endpoints:
 - Search: `/search/suggest.json?q=...&resources[type]=product`
 - Product detail: `/products/{handle}.json`
 
-Price history is stored in SQLite (CLI: `data/prices.db`) or Supabase Postgres (web app).
+Price history is stored in SQLite (CLI: `data/prices.db`) or Supabase Postgres (web app). The web app periodically snapshots the full Face to Face Magic singles catalog (~25,000 cards) to detect price changes across all listings.
 
 ## Notes
 

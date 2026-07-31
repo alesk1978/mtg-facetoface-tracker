@@ -1,8 +1,83 @@
+import { collectSetsFromTitles, parseSetFromTitle } from "./card-meta";
 import { getSupabase } from "./supabase";
-import type { PriceChange, PriceSnapshot, WatchedProduct } from "./types";
+import type { ChangeFilters, ChangeSearchResult, PriceChange, PriceSnapshot, WatchedProduct } from "./types";
 
 function utcNow(): string {
   return new Date().toISOString();
+}
+
+interface SnapshotRow {
+  shopifyId: number;
+  title: string;
+  price: number;
+  checkedAt: string;
+}
+
+function periodStartIso(periodDays: number | null | undefined): string | null {
+  if (periodDays === null || periodDays === undefined) return null;
+  const start = new Date();
+  start.setDate(start.getDate() - periodDays);
+  return start.toISOString();
+}
+
+function computeChange(
+  product: WatchedProduct,
+  snapshots: SnapshotRow[],
+  periodDays: number | null | undefined,
+): PriceChange | null {
+  if (snapshots.length < 2) return null;
+
+  const periodStart = periodStartIso(periodDays);
+  const baseline = periodStart
+    ? [...snapshots].reverse().find((snap) => snap.checkedAt <= periodStart) ??
+      snapshots[0]
+    : snapshots[0];
+  const current = snapshots[snapshots.length - 1];
+
+  if (baseline.checkedAt === current.checkedAt) return null;
+
+  const prevPrice = baseline.price;
+  const currPrice = current.price;
+  if (prevPrice === currPrice) return null;
+
+  if (periodStart && current.checkedAt < periodStart) return null;
+
+  const delta = currPrice - prevPrice;
+  const deltaPct = prevPrice ? (delta / prevPrice) * 100 : 0;
+
+  return {
+    shopifyId: product.shopifyId,
+    title: product.title,
+    handle: product.handle,
+    url: product.url,
+    set: parseSetFromTitle(product.title),
+    previousPrice: prevPrice,
+    currentPrice: currPrice,
+    delta,
+    deltaPct,
+    previousCheckedAt: baseline.checkedAt,
+    currentCheckedAt: current.checkedAt,
+  };
+}
+
+function matchesFilters(change: PriceChange, filters: ChangeFilters): boolean {
+  if (filters.query?.trim()) {
+    const q = filters.query.trim().toLowerCase();
+    if (!change.title.toLowerCase().includes(q)) return false;
+  }
+
+  if (filters.minAbsDelta !== undefined && filters.minAbsDelta > 0) {
+    if (Math.abs(change.delta) < filters.minAbsDelta) return false;
+  }
+
+  if (filters.sets?.length) {
+    if (!change.set || !filters.sets.includes(change.set)) return false;
+  }
+
+  if (filters.direction === "up" && change.delta <= 0) return false;
+  if (filters.direction === "down" && change.delta >= 0) return false;
+
+  return true;
 }
 
 export async function addToWatchlist(
@@ -97,42 +172,41 @@ export async function latestSnapshots(): Promise<PriceSnapshot[]> {
   return snapshots;
 }
 
-export async function priceChanges(): Promise<PriceChange[]> {
+export async function priceChanges(filters: ChangeFilters = {}): Promise<ChangeSearchResult> {
   const products = await listWatchlist();
-  const changes: PriceChange[] = [];
+  const sets = collectSetsFromTitles(products.map((item) => item.title));
+  const productById = new Map(products.map((item) => [item.shopifyId, item]));
 
-  for (const product of products) {
-    const { data, error } = await getSupabase()
-      .from("price_snapshots")
-      .select("price, checked_at")
-      .eq("shopify_id", product.shopifyId)
-      .order("checked_at", { ascending: false })
-      .limit(2);
-    if (error) throw new Error(error.message);
-    if (!data || data.length < 2) continue;
+  const { data, error } = await getSupabase()
+    .from("price_snapshots")
+    .select("shopify_id, title, price, checked_at")
+    .order("checked_at", { ascending: true });
+  if (error) throw new Error(error.message);
 
-    const current = data[0];
-    const previous = data[1];
-    const prevPrice = Number(previous.price);
-    const currPrice = Number(current.price);
-
-    if (prevPrice === currPrice) continue;
-
-    const delta = currPrice - prevPrice;
-    const deltaPct = prevPrice ? (delta / prevPrice) * 100 : 0;
-
-    changes.push({
-      shopifyId: product.shopifyId,
-      title: product.title,
-      previousPrice: prevPrice,
-      currentPrice: currPrice,
-      delta,
-      deltaPct,
-      previousCheckedAt: previous.checked_at,
-      currentCheckedAt: current.checked_at,
+  const grouped = new Map<number, SnapshotRow[]>();
+  for (const row of data ?? []) {
+    const shopifyId = Number(row.shopify_id);
+    const bucket = grouped.get(shopifyId) ?? [];
+    bucket.push({
+      shopifyId,
+      title: String(row.title),
+      price: Number(row.price),
+      checkedAt: String(row.checked_at),
     });
+    grouped.set(shopifyId, bucket);
   }
 
-  changes.sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct));
-  return changes;
+  const changes: PriceChange[] = [];
+  for (const [shopifyId, snapshots] of grouped) {
+    const product = productById.get(shopifyId);
+    if (!product) continue;
+
+    const change = computeChange(product, snapshots, filters.periodDays);
+    if (!change) continue;
+    if (!matchesFilters(change, filters)) continue;
+    changes.push(change);
+  }
+
+  changes.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  return { changes, sets };
 }

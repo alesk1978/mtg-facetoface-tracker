@@ -1,6 +1,7 @@
 import * as db from "./db";
+import { catalogPriceChanges } from "./catalog-changes";
 import { fetchByHandle, searchCards } from "./facetoface";
-import type { CardListing, PriceChange, PriceSnapshot, WatchedProduct } from "./types";
+import type { CardListing, ChangeFilters, ChangeSearchResult, PriceSnapshot, WatchedProduct } from "./types";
 
 export async function search(query: string, limit = 20): Promise<CardListing[]> {
   return searchCards(query, limit);
@@ -53,6 +54,6 @@ export async function checkPrices(): Promise<PriceSnapshot[]> {
   return db.latestSnapshots();
 }
 
-export async function recentChanges(): Promise<PriceChange[]> {
-  return db.priceChanges();
+export async function recentChanges(filters: ChangeFilters = {}): Promise<ChangeSearchResult> {
+  return catalogPriceChanges(filters);
 }

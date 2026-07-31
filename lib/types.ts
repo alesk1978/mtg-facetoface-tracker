@@ -31,10 +31,28 @@ export interface PriceSnapshot {
 export interface PriceChange {
   shopifyId: number;
   title: string;
+  handle: string;
+  url: string;
+  set: string | null;
   previousPrice: number;
   currentPrice: number;
   delta: number;
   deltaPct: number;
   previousCheckedAt: string;
   currentCheckedAt: string;
+}
+
+export interface ChangeFilters {
+  query?: string;
+  minAbsDelta?: number;
+  sets?: string[];
+  periodDays?: number | null;
+  direction?: "any" | "up" | "down";
+}
+
+export interface ChangeSearchResult {
+  changes: PriceChange[];
+  sets: string[];
+  baselineAt?: string | null;
+  currentAt?: string | null;
 }

@@ -40,6 +40,37 @@ function listingFromProduct(raw: Record<string, unknown>): CardListing | null {
   };
 }
 
+function listingFromShopifyCatalog(raw: Record<string, unknown>): CardListing | null {
+  const vendor = String(raw.vendor ?? "");
+  const productType = String(raw.product_type ?? "");
+  if (vendor !== "Magic" || productType !== "Singles") return null;
+
+  const variant = (raw.variants as Record<string, unknown>[] | undefined)?.[0] ?? {};
+  const compareAtRaw = variant.compare_at_price;
+  const compareAt =
+    compareAtRaw !== null &&
+    compareAtRaw !== undefined &&
+    compareAtRaw !== "" &&
+    compareAtRaw !== "0.00"
+      ? parsePrice(compareAtRaw as string | number)
+      : null;
+
+  const handle = String(raw.handle ?? "");
+
+  return {
+    shopifyId: Number(raw.id),
+    title: String(raw.title ?? ""),
+    handle,
+    url: `/products/${handle}`,
+    price: parsePrice(variant.price as string | number),
+    compareAtPrice: compareAt,
+    available: Boolean(variant.available ?? true),
+    vendor,
+    productType,
+    productUrl: `${BASE_URL}/products/${handle}`,
+  };
+}
+
 async function requestJson<T>(
   path: string,
   params?: Record<string, string>,
@@ -83,6 +114,24 @@ export async function searchCards(
   const products = payload.resources?.results?.products ?? [];
   return products
     .map((raw) => listingFromProduct(raw))
+    .filter((item): item is CardListing => item !== null);
+}
+
+export async function fetchMagicCatalogPage(
+  page: number,
+  limit = 250,
+): Promise<CardListing[]> {
+  const payload = await requestJson<{ products?: Record<string, unknown>[] }>(
+    "/products.json",
+    {
+      limit: String(limit),
+      page: String(page),
+      vendor: "Magic",
+    },
+  );
+
+  return (payload.products ?? [])
+    .map((raw) => listingFromShopifyCatalog(raw))
     .filter((item): item is CardListing => item !== null);
 }
 
