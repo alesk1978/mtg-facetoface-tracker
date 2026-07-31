@@ -48,7 +48,7 @@ cp web/.env.example web/.env.local   # or copy manually on Windows
 
 1. Push this repo to GitHub.
 2. Import the project in [Vercel](https://vercel.com/new).
-3. Vercel reads `vercel.json` at the repo root and builds from the `web/` directory.
+3. Under **Root Directory**, click Edit and set it to `web` (Vercel does not support this in `vercel.json`).
 4. In Vercel → **Settings → Environment Variables**, add:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
