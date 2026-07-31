@@ -127,16 +127,42 @@ export async function searchCards(
 export async function fetchMagicCatalogPage(
   page: number,
   limit = 250,
+  attempt = 0,
 ): Promise<{ listings: CardListing[]; rawCount: number }> {
-  const payload = await requestJson<{ products?: Record<string, unknown>[] }>(
-    "/products.json",
-    {
-      limit: String(limit),
-      page: String(page),
-      vendor: "Magic",
-    },
-  );
+  const params = {
+    limit: String(limit),
+    page: String(page),
+    vendor: "Magic",
+  };
+  const query = `?${new URLSearchParams(params).toString()}`;
+  const url = `${BASE_URL}/products.json${query}`;
 
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": USER_AGENT,
+    },
+    next: { revalidate: 0 },
+    cache: "no-store",
+  });
+
+  if (response.status === 429 && attempt < 3) {
+    await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+    return fetchMagicCatalogPage(page, limit, attempt + 1);
+  }
+
+  // Shopify returns 400/404 when page exceeds the catalog — treat as end of catalog.
+  if (response.status === 400 || response.status === 404) {
+    return { listings: [], rawCount: 0 };
+  }
+
+  if (!response.ok) {
+    throw new Error(`Face to Face request failed (${response.status}): ${url}`);
+  }
+
+  const payload = (await response.json()) as {
+    products?: Record<string, unknown>[];
+  };
   const products = payload.products ?? [];
   const listings = products
     .map((raw) => listingFromShopifyCatalog(raw))
