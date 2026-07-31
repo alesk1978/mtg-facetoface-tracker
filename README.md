@@ -18,37 +18,32 @@ Track **Magic: The Gathering** singles price changes on [Face to Face Games](htt
 
 ## Web app (Vercel)
 
-The web interface lives in `web/` and is a Next.js app.
+The web interface is a Next.js app at the repo root.
 
 ### Local development
 
 ```bash
-cd web
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Copy `web/.env.example` to `web/.env.local` and fill in your Supabase credentials:
-
-```bash
-cp web/.env.example web/.env.local   # or copy manually on Windows
-```
+Copy `.env.example` to `.env.local` and fill in your Supabase credentials.
 
 ### Supabase setup
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql).
 3. In **Project Settings → API**, copy:
-   - **Project URL** → `SUPABASE_URL`
-   - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-side only — never expose in the browser)
+   - **Project URL** → `SUPABASE_URL` (base URL only, no `/rest/v1/`)
+   - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
 
 ### Deploy to Vercel
 
 1. Push this repo to GitHub.
 2. Import the project in [Vercel](https://vercel.com/new).
-3. Under **Root Directory**, click Edit and set it to `web` (Vercel does not support this in `vercel.json`).
+3. Leave **Root Directory** empty (the Next.js app is at the repo root).
 4. In Vercel → **Settings → Environment Variables**, add:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
@@ -59,8 +54,6 @@ cp web/.env.example web/.env.local   # or copy manually on Windows
 No third-party Python packages required.
 
 ```bash
-cd mtg-facetoface-tracker
-
 # Search for a card
 python -m src.cli search "Lightning Bolt"
 

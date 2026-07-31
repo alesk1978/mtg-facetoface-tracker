@@ -1,8 +1,22 @@
 __pycache__/
 *.py[cod]
 .env
+.env.local
 .venv/
 venv/
 data/
 *.db
 .DS_Store
+
+# Next.js
+/node_modules
+/web/node_modules
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
+# env files
+.env*
+!.env.example
