@@ -8,6 +8,23 @@ function parsePrice(value: string | number | null | undefined): number {
   return Number(value);
 }
 
+function parseImageUrl(raw: Record<string, unknown>): string | null {
+  const direct = raw.image;
+  if (typeof direct === "string" && direct) return direct;
+
+  const featured = raw.featured_image as Record<string, unknown> | undefined;
+  if (typeof featured?.url === "string" && featured.url) return featured.url;
+
+  const imageObj = direct as Record<string, unknown> | undefined;
+  if (typeof imageObj?.src === "string" && imageObj.src) return imageObj.src;
+
+  const images = raw.images as Record<string, unknown>[] | undefined;
+  const first = images?.[0];
+  if (typeof first?.src === "string" && first.src) return first.src;
+
+  return null;
+}
+
 function listingFromProduct(raw: Record<string, unknown>): CardListing | null {
   const vendor = String(raw.vendor ?? "");
   const productType = String(raw.type ?? raw.product_type ?? "");
@@ -37,6 +54,7 @@ function listingFromProduct(raw: Record<string, unknown>): CardListing | null {
     vendor,
     productType,
     productUrl: `${BASE_URL}${url.split("?")[0]}`,
+    imageUrl: parseImageUrl(raw),
   };
 }
 
@@ -68,6 +86,7 @@ function listingFromShopifyCatalog(raw: Record<string, unknown>): CardListing | 
     vendor,
     productType,
     productUrl: `${BASE_URL}/products/${handle}`,
+    imageUrl: parseImageUrl(raw),
   };
 }
 
@@ -203,5 +222,6 @@ export async function fetchByHandle(handle: string): Promise<CardListing> {
     vendor: String(product.vendor ?? ""),
     productType: String(product.product_type ?? ""),
     productUrl: `${BASE_URL}/products/${resolvedHandle}`,
+    imageUrl: parseImageUrl(product),
   };
 }

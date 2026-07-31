@@ -344,25 +344,35 @@ export default function TrackerApp() {
                 className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-lg shadow-black/20"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-2">
-                    <h2 className="text-lg font-medium text-zinc-50">{item.title}</h2>
-                    <p className="text-sm text-zinc-400">
-                      {item.available ? "In stock" : "Out of stock"}
-                      {item.compareAtPrice ? (
-                        <span>
-                          {" "}
-                          · was {formatMoney(item.compareAtPrice)}
-                        </span>
-                      ) : null}
-                    </p>
-                    <a
-                      href={item.productUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-amber-300 hover:text-amber-200"
-                    >
-                      View on Face to Face
-                    </a>
+                  <div className="flex min-w-0 flex-1 gap-4">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-32 w-[5.5rem] shrink-0 rounded-xl border border-zinc-700 bg-zinc-950 object-cover shadow-md"
+                        loading="lazy"
+                      />
+                    ) : null}
+                    <div className="min-w-0 space-y-2">
+                      <h2 className="text-lg font-medium text-zinc-50">{item.title}</h2>
+                      <p className="text-sm text-zinc-400">
+                        {item.available ? "In stock" : "Out of stock"}
+                        {item.compareAtPrice ? (
+                          <span>
+                            {" "}
+                            · was {formatMoney(item.compareAtPrice)}
+                          </span>
+                        ) : null}
+                      </p>
+                      <a
+                        href={item.productUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-amber-300 hover:text-amber-200"
+                      >
+                        View on Face to Face
+                      </a>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-2xl font-semibold text-amber-300">

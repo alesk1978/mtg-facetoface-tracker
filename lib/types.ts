@@ -9,6 +9,7 @@ export interface CardListing {
   vendor: string;
   productType: string;
   productUrl: string;
+  imageUrl: string | null;
 }
 
 export interface WatchedProduct {
