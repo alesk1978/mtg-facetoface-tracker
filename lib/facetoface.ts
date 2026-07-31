@@ -85,7 +85,8 @@ async function requestJson<T>(
       Accept: "application/json",
       "User-Agent": USER_AGENT,
     },
-    next: { revalidate: 60 },
+    next: { revalidate: 0 },
+    cache: "no-store",
   });
 
   if (!response.ok) {

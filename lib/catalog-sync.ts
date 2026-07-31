@@ -3,7 +3,8 @@ import { fetchMagicCatalogPage } from "./facetoface";
 import { getSupabase } from "./supabase";
 
 export const MAGIC_CATALOG_PAGES = 100;
-export const PAGES_PER_SYNC = 3;
+export const PAGES_PER_SYNC = 1;
+const UPSERT_CHUNK_SIZE = 100;
 
 interface SyncRun {
   id: number;
@@ -49,7 +50,7 @@ async function getRunningRun(): Promise<SyncRun | null> {
     .from("catalog_sync_runs")
     .select("id, started_at, completed_at, status, last_page, products_synced")
     .eq("status", "running")
-    .order("started_at", { ascending: false })
+    .order("last_page", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) {
@@ -124,6 +125,27 @@ export async function getCatalogSyncStatus(): Promise<CatalogSyncStatus> {
   };
 }
 
+async function upsertSnapshots(
+  rows: Array<{
+    run_id: number;
+    shopify_id: number;
+    title: string;
+    handle: string;
+    set_name: string | null;
+    price: number;
+    compare_at_price: number | null;
+    available: boolean;
+  }>,
+): Promise<void> {
+  for (let index = 0; index < rows.length; index += UPSERT_CHUNK_SIZE) {
+    const chunk = rows.slice(index, index + UPSERT_CHUNK_SIZE);
+    const { error } = await getSupabase()
+      .from("catalog_snapshots")
+      .upsert(chunk, { onConflict: "run_id,shopify_id" });
+    if (error) throw new Error(error.message);
+  }
+}
+
 export async function syncCatalogBatch(
   pagesPerBatch = PAGES_PER_SYNC,
 ): Promise<CatalogSyncStatus> {
@@ -136,7 +158,11 @@ export async function syncCatalogBatch(
 
   while (page <= endPage) {
     const listings = await fetchMagicCatalogPage(page);
-    if (listings.length === 0) break;
+    if (listings.length === 0) {
+      throw new Error(
+        `Face to Face returned no products for page ${page}. Wait a minute and try again.`,
+      );
+    }
 
     const rows = listings.map((item) => ({
       run_id: run!.id,
@@ -149,10 +175,7 @@ export async function syncCatalogBatch(
       available: item.available,
     }));
 
-    const { error } = await getSupabase()
-      .from("catalog_snapshots")
-      .upsert(rows, { onConflict: "run_id,shopify_id" });
-    if (error) throw new Error(error.message);
+    await upsertSnapshots(rows);
 
     productsSynced += listings.length;
     await updateRunProgress(run.id, page, productsSynced);

@@ -205,24 +205,44 @@ export default function TrackerApp() {
       let status = await runSyncBatch();
       setSyncStatus(status);
       let batches = 1;
+      let staleBatches = 0;
+      let lastPage = status.currentRun?.lastPage ?? 0;
+      let stalled = false;
 
       while (
         status.currentRun &&
         status.currentRun.lastPage < status.currentRun.totalPages &&
-        batches < 40
+        batches < 110
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 1200));
         status = await runSyncBatch();
         setSyncStatus(status);
         batches += 1;
+
+        const currentPage = status.currentRun?.lastPage ?? lastPage;
+        if (currentPage === lastPage) {
+          staleBatches += 1;
+          if (staleBatches >= 3) {
+            stalled = true;
+            setError(
+              "Sync stalled (likely Vercel timeout). Wait 30 seconds, then click Run full catalog sync again to continue.",
+            );
+            break;
+          }
+        } else {
+          staleBatches = 0;
+          lastPage = currentPage;
+        }
       }
 
       const done = !status.currentRun;
-      setMessage(
-        done
-          ? `Full catalog snapshot saved (${batches} batches). Run again later for a second snapshot to detect price changes.`
-          : `Synced ${batches} batches — page ${status.currentRun!.lastPage}/${status.currentRun!.totalPages}. Click again to continue.`,
-      );
+      if (!stalled) {
+        setMessage(
+          done
+            ? `Full catalog snapshot saved (${batches} batches). Run again later for a second snapshot to detect price changes.`
+            : `Synced ${batches} batches — page ${status.currentRun!.lastPage}/${status.currentRun!.totalPages} (${status.currentRun!.productsSynced.toLocaleString()} cards). Click again to continue.`,
+        );
+      }
       await loadChanges();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Catalog sync failed");
