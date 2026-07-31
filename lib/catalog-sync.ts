@@ -2,9 +2,11 @@ import { parseSetFromTitle } from "./card-meta";
 import { fetchMagicCatalogPage } from "./facetoface";
 import { getSupabase } from "./supabase";
 
-export const MAGIC_CATALOG_PAGES = 100;
+/** Safety cap — sync completes when Face to Face returns an empty page. */
+export const MAGIC_CATALOG_PAGES = 150;
 export const PAGES_PER_SYNC = 1;
 const UPSERT_CHUNK_SIZE = 100;
+const PAGE_DELAY_MS = 400;
 
 interface SyncRun {
   id: number;
@@ -146,6 +148,10 @@ async function upsertSnapshots(
   }
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function syncCatalogBatch(
   pagesPerBatch = PAGES_PER_SYNC,
 ): Promise<CatalogSyncStatus> {
@@ -155,13 +161,22 @@ export async function syncCatalogBatch(
   let page = run.lastPage + 1;
   const endPage = Math.min(page + pagesPerBatch - 1, MAGIC_CATALOG_PAGES);
   let productsSynced = run.productsSynced;
+  let catalogComplete = false;
 
   while (page <= endPage) {
-    const listings = await fetchMagicCatalogPage(page);
+    await delay(PAGE_DELAY_MS);
+    const { listings, rawCount } = await fetchMagicCatalogPage(page);
+
+    if (rawCount === 0) {
+      catalogComplete = true;
+      break;
+    }
+
     if (listings.length === 0) {
-      throw new Error(
-        `Face to Face returned no products for page ${page}. Wait a minute and try again.`,
-      );
+      // Magic vendor page with no singles (e.g. event tickets) — skip it.
+      await updateRunProgress(run.id, page, productsSynced);
+      page += 1;
+      continue;
     }
 
     const rows = listings.map((item) => ({
@@ -183,8 +198,12 @@ export async function syncCatalogBatch(
   }
 
   const finishedPage = page - 1;
-  if (finishedPage >= MAGIC_CATALOG_PAGES) {
-    await completeRun(run.id, MAGIC_CATALOG_PAGES, productsSynced);
+  if (catalogComplete || finishedPage >= MAGIC_CATALOG_PAGES) {
+    await completeRun(
+      run.id,
+      catalogComplete ? Math.max(finishedPage, run.lastPage) : MAGIC_CATALOG_PAGES,
+      productsSynced,
+    );
   }
 
   return getCatalogSyncStatus();

@@ -209,11 +209,7 @@ export default function TrackerApp() {
       let lastPage = status.currentRun?.lastPage ?? 0;
       let stalled = false;
 
-      while (
-        status.currentRun &&
-        status.currentRun.lastPage < status.currentRun.totalPages &&
-        batches < 110
-      ) {
+      while (status.currentRun && batches < 150) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         status = await runSyncBatch();
         setSyncStatus(status);
@@ -240,7 +236,7 @@ export default function TrackerApp() {
         setMessage(
           done
             ? `Full catalog snapshot saved (${batches} batches). Run again later for a second snapshot to detect price changes.`
-            : `Synced ${batches} batches — page ${status.currentRun!.lastPage}/${status.currentRun!.totalPages} (${status.currentRun!.productsSynced.toLocaleString()} cards). Click again to continue.`,
+            : `Synced ${batches} batches — page ${status.currentRun!.lastPage} scanned (${status.currentRun!.productsSynced.toLocaleString()} singles saved). Click again to continue.`,
         );
       }
       await loadChanges();
@@ -505,8 +501,8 @@ export default function TrackerApp() {
                       ? "No full catalog snapshots yet."
                       : `${syncStatus.completeRuns} full catalog snapshot saved.`}{" "}
                     {syncStatus.currentRun
-                      ? `Sync in progress: page ${syncStatus.currentRun.lastPage}/${syncStatus.currentRun.totalPages} (${syncStatus.currentRun.productsSynced.toLocaleString()} cards).`
-                      : "Click Run full catalog sync to snapshot all ~25,000 Magic singles."}{" "}
+                      ? `Sync in progress: page ${syncStatus.currentRun.lastPage} scanned (${syncStatus.currentRun.productsSynced.toLocaleString()} singles saved).`
+                      : "Click Run full catalog sync to snapshot all Magic singles on Face to Face."}{" "}
                     You need 2 full snapshots before price changes can be compared.
                   </p>
                 ) : (

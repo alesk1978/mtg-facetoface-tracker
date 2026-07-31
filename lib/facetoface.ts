@@ -74,6 +74,7 @@ function listingFromShopifyCatalog(raw: Record<string, unknown>): CardListing | 
 async function requestJson<T>(
   path: string,
   params?: Record<string, string>,
+  attempt = 0,
 ): Promise<T> {
   const query = params
     ? `?${new URLSearchParams(params).toString()}`
@@ -88,6 +89,11 @@ async function requestJson<T>(
     next: { revalidate: 0 },
     cache: "no-store",
   });
+
+  if (response.status === 429 && attempt < 3) {
+    await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+    return requestJson(path, params, attempt + 1);
+  }
 
   if (!response.ok) {
     throw new Error(`Face to Face request failed (${response.status}): ${url}`);
@@ -121,7 +127,7 @@ export async function searchCards(
 export async function fetchMagicCatalogPage(
   page: number,
   limit = 250,
-): Promise<CardListing[]> {
+): Promise<{ listings: CardListing[]; rawCount: number }> {
   const payload = await requestJson<{ products?: Record<string, unknown>[] }>(
     "/products.json",
     {
@@ -131,9 +137,12 @@ export async function fetchMagicCatalogPage(
     },
   );
 
-  return (payload.products ?? [])
+  const products = payload.products ?? [];
+  const listings = products
     .map((raw) => listingFromShopifyCatalog(raw))
     .filter((item): item is CardListing => item !== null);
+
+  return { listings, rawCount: products.length };
 }
 
 export async function fetchByHandle(handle: string): Promise<CardListing> {
