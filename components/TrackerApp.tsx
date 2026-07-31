@@ -170,16 +170,59 @@ export default function TrackerApp() {
     });
   }
 
+  async function runSyncBatch(): Promise<CatalogSyncStatus> {
+    return readJson<CatalogSyncStatus>(
+      await fetch("/api/catalog/sync", { method: "POST" }),
+    );
+  }
+
   async function handleSyncCatalog() {
     setSyncingCatalog(true);
     setError(null);
     setMessage(null);
     try {
-      const status = await readJson<CatalogSyncStatus>(
-        await fetch("/api/catalog/sync", { method: "POST" }),
-      );
+      const status = await runSyncBatch();
       setSyncStatus(status);
-      setMessage("Catalog sync batch completed.");
+      const progress = status.currentRun
+        ? ` Page ${status.currentRun.lastPage}/${status.currentRun.totalPages} (${status.currentRun.productsSynced.toLocaleString()} cards).`
+        : status.completeRuns > 0
+          ? ` ${status.completeRuns} full snapshot(s) saved.`
+          : "";
+      setMessage(`Catalog sync batch completed.${progress}`);
+      await loadChanges();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Catalog sync failed");
+    } finally {
+      setSyncingCatalog(false);
+    }
+  }
+
+  async function handleFullCatalogSync() {
+    setSyncingCatalog(true);
+    setError(null);
+    setMessage(null);
+    try {
+      let status = await runSyncBatch();
+      setSyncStatus(status);
+      let batches = 1;
+
+      while (
+        status.currentRun &&
+        status.currentRun.lastPage < status.currentRun.totalPages &&
+        batches < 40
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        status = await runSyncBatch();
+        setSyncStatus(status);
+        batches += 1;
+      }
+
+      const done = !status.currentRun;
+      setMessage(
+        done
+          ? `Full catalog snapshot saved (${batches} batches). Run again later for a second snapshot to detect price changes.`
+          : `Synced ${batches} batches — page ${status.currentRun!.lastPage}/${status.currentRun!.totalPages}. Click again to continue.`,
+      );
       await loadChanges();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Catalog sync failed");
@@ -409,11 +452,19 @@ export default function TrackerApp() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
+                  onClick={handleFullCatalogSync}
+                  disabled={syncingCatalog}
+                  className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-300 disabled:opacity-60"
+                >
+                  {syncingCatalog ? "Syncing catalog..." : "Run full catalog sync"}
+                </button>
+                <button
+                  type="button"
                   onClick={handleSyncCatalog}
                   disabled={syncingCatalog}
                   className="rounded-full border border-zinc-600 px-4 py-2 text-sm text-zinc-300 transition hover:border-amber-400 hover:text-amber-300 disabled:opacity-60"
                 >
-                  {syncingCatalog ? "Syncing..." : "Sync catalog batch"}
+                  Sync one batch
                 </button>
                 <button
                   type="button"
@@ -430,10 +481,13 @@ export default function TrackerApp() {
               <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
                 {syncStatus.completeRuns < 2 ? (
                   <p>
-                    Catalog history building: {syncStatus.completeRuns} full snapshot
-                    {syncStatus.completeRuns === 1 ? "" : "s"} saved. Need at least 2 full
-                    syncs to compare prices. Click &quot;Sync catalog batch&quot; repeatedly
-                    until a full sync completes (~10 batches).
+                    {syncStatus.completeRuns === 0
+                      ? "No full catalog snapshots yet."
+                      : `${syncStatus.completeRuns} full catalog snapshot saved.`}{" "}
+                    {syncStatus.currentRun
+                      ? `Sync in progress: page ${syncStatus.currentRun.lastPage}/${syncStatus.currentRun.totalPages} (${syncStatus.currentRun.productsSynced.toLocaleString()} cards).`
+                      : "Click Run full catalog sync to snapshot all ~25,000 Magic singles."}{" "}
+                    You need 2 full snapshots before price changes can be compared.
                   </p>
                 ) : (
                   <p>

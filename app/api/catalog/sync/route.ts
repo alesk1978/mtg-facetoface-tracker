@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { syncCatalogBatch } from "@/lib/catalog-sync";
 
+export const maxDuration = 60;
+
 export async function POST() {
   try {
     const status = await syncCatalogBatch();

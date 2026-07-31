@@ -3,7 +3,7 @@ import { fetchMagicCatalogPage } from "./facetoface";
 import { getSupabase } from "./supabase";
 
 export const MAGIC_CATALOG_PAGES = 100;
-export const PAGES_PER_SYNC = 10;
+export const PAGES_PER_SYNC = 3;
 
 interface SyncRun {
   id: number;
