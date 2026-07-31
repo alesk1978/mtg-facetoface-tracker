@@ -1,4 +1,5 @@
 import { collectSetsFromTitles } from "./card-meta";
+import { isMissingTableError } from "./catalog-sync";
 import { getSupabase } from "./supabase";
 import type { ChangeFilters, ChangeSearchResult, PriceChange } from "./types";
 
@@ -28,7 +29,10 @@ async function getCompleteRuns(): Promise<SyncRunRow[]> {
     .select("id, completed_at")
     .eq("status", "complete")
     .order("completed_at", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingTableError(error)) return [];
+    throw new Error(error.message);
+  }
 
   return (data ?? []).map((row) => ({
     id: Number(row.id),

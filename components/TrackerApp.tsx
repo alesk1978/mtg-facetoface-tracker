@@ -159,12 +159,15 @@ export default function TrackerApp() {
     setLoadingChanges(true);
     setError(null);
     try {
-      await Promise.all([loadSyncStatus(), loadChanges()]);
+      await loadChanges();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load changes");
     } finally {
       setLoadingChanges(false);
     }
+    loadSyncStatus().catch(() => {
+      setSyncStatus(null);
+    });
   }
 
   async function handleSyncCatalog() {
@@ -442,7 +445,12 @@ export default function TrackerApp() {
                   </p>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Run <code className="rounded bg-zinc-900 px-1">supabase/catalog.sql</code> in
+                Supabase, then use Sync catalog batch to start tracking all cards.
+              </div>
+            )}
 
             {changeBaselineAt && changeCurrentAt ? (
               <p className="text-sm text-zinc-500">

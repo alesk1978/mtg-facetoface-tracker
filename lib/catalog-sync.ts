@@ -36,6 +36,14 @@ function mapRun(row: Record<string, unknown>): SyncRun {
   };
 }
 
+export function isMissingTableError(error: { message?: string; code?: string }): boolean {
+  return (
+    error.code === "42P01" ||
+    Boolean(error.message?.includes("does not exist")) ||
+    Boolean(error.message?.includes("Could not find the table"))
+  );
+}
+
 async function getRunningRun(): Promise<SyncRun | null> {
   const { data, error } = await getSupabase()
     .from("catalog_sync_runs")
@@ -44,7 +52,10 @@ async function getRunningRun(): Promise<SyncRun | null> {
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingTableError(error)) return null;
+    throw new Error(error.message);
+  }
   return data ? mapRun(data) : null;
 }
 
@@ -85,7 +96,17 @@ export async function getCatalogSyncStatus(): Promise<CatalogSyncStatus> {
     .select("completed_at")
     .eq("status", "complete")
     .order("completed_at", { ascending: false });
-  if (completeError) throw new Error(completeError.message);
+  if (completeError) {
+    if (isMissingTableError(completeError)) {
+      return {
+        isRunning: false,
+        lastCompleteAt: null,
+        completeRuns: 0,
+        currentRun: null,
+      };
+    }
+    throw new Error(completeError.message);
+  }
 
   const running = await getRunningRun();
 
