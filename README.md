@@ -5,16 +5,58 @@ Track **Magic: The Gathering** singles price changes on [Face to Face Games](htt
 ## Features
 
 - Search MTG singles by card name
-- Add listings to a local watchlist (by Shopify product handle)
-- Run price checks and store history in SQLite
+- Add listings to a watchlist (by Shopify product handle)
+- Run price checks and store history
 - View price changes between the last two checks
+- **Web UI** deployable on Vercel
+- **CLI** for local terminal use
 
 ## Requirements
 
-- Python 3.11+
-- No third-party packages required
+- Python 3.11+ (CLI)
+- Node.js 20+ (web app)
 
-## Quick start
+## Web app (Vercel)
+
+The web interface lives in `web/` and is a Next.js app.
+
+### Local development
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Copy `web/.env.example` to `web/.env.local` and fill in your Supabase credentials:
+
+```bash
+cp web/.env.example web/.env.local   # or copy manually on Windows
+```
+
+### Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql).
+3. In **Project Settings → API**, copy:
+   - **Project URL** → `SUPABASE_URL`
+   - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-side only — never expose in the browser)
+
+### Deploy to Vercel
+
+1. Push this repo to GitHub.
+2. Import the project in [Vercel](https://vercel.com/new).
+3. Vercel reads `vercel.json` at the repo root and builds from the `web/` directory.
+4. In Vercel → **Settings → Environment Variables**, add:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+5. Deploy.
+
+## CLI
+
+No third-party Python packages required.
 
 ```bash
 cd mtg-facetoface-tracker
@@ -42,7 +84,7 @@ Face to Face runs on Shopify. The app reads public JSON endpoints:
 - Search: `/search/suggest.json?q=...&resources[type]=product`
 - Product detail: `/products/{handle}.json`
 
-Price history is stored locally in `data/prices.db`.
+Price history is stored in SQLite (CLI: `data/prices.db`) or Supabase Postgres (web app).
 
 ## Notes
 
