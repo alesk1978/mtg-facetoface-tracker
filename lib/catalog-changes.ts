@@ -14,6 +14,7 @@ interface SnapshotRow {
   handle: string;
   setName: string | null;
   price: number;
+  imageUrl: string | null;
 }
 
 function periodStartIso(periodDays: number | null | undefined): string | null {
@@ -67,7 +68,7 @@ function pickRuns(
 async function snapshotsForRun(runId: number): Promise<Map<number, SnapshotRow>> {
   const { data, error } = await getSupabase()
     .from("catalog_snapshots")
-    .select("shopify_id, title, handle, set_name, price")
+    .select("shopify_id, title, handle, set_name, price, image_url")
     .eq("run_id", runId);
   if (error) throw new Error(error.message);
 
@@ -79,6 +80,7 @@ async function snapshotsForRun(runId: number): Promise<Map<number, SnapshotRow>>
       handle: String(row.handle),
       setName: row.set_name ? String(row.set_name) : null,
       price: Number(row.price),
+      imageUrl: row.image_url ? String(row.image_url) : null,
     });
   }
   return map;
@@ -132,6 +134,7 @@ export async function catalogPriceChanges(
       handle: current.handle,
       url: `https://www.facetofacegames.com/products/${current.handle}`,
       set: current.setName,
+      imageUrl: current.imageUrl,
       previousPrice: baseline.price,
       currentPrice: current.price,
       delta,

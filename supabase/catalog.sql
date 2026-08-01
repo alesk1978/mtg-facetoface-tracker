@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS catalog_snapshots (
   price DOUBLE PRECISION NOT NULL,
   compare_at_price DOUBLE PRECISION,
   available BOOLEAN NOT NULL,
+  image_url TEXT,
   UNIQUE (run_id, shopify_id)
 );
 
@@ -31,3 +32,6 @@ CREATE INDEX IF NOT EXISTS idx_catalog_snapshots_set
 CREATE INDEX IF NOT EXISTS idx_catalog_sync_runs_completed
   ON catalog_sync_runs (completed_at DESC)
   WHERE status = 'complete';
+
+-- Existing projects: run once if catalog_snapshots already exists without image_url
+-- ALTER TABLE catalog_snapshots ADD COLUMN IF NOT EXISTS image_url TEXT;

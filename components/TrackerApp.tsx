@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { CatalogSyncStatus } from "@/lib/catalog-sync";
+import { CardThumbnail } from "@/components/CardThumbnail";
 import type { CardListing, PriceChange, PriceSnapshot, WatchedProduct } from "@/lib/types";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -341,17 +342,12 @@ export default function TrackerApp() {
             {searchResults.map((item) => (
               <article
                 key={item.handle}
-                className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-lg shadow-black/20"
+                className="overflow-visible rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-lg shadow-black/20"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex min-w-0 flex-1 gap-4">
                     {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-32 w-[5.5rem] shrink-0 rounded-xl border border-zinc-700 bg-zinc-950 object-cover shadow-md"
-                        loading="lazy"
-                      />
+                      <CardThumbnail src={item.imageUrl} alt={item.title} />
                     ) : null}
                     <div className="min-w-0 space-y-2">
                       <h2 className="text-lg font-medium text-zinc-50">{item.title}</h2>
@@ -419,28 +415,33 @@ export default function TrackerApp() {
                 return (
                   <article
                     key={item.handle}
-                    className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5"
+                    className="overflow-visible rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-medium text-zinc-50">{item.title}</h3>
-                        <p className="text-sm text-zinc-400">
-                          Added {formatDate(item.addedAt)}
-                        </p>
-                        {snapshot ? (
-                          <p className="text-sm text-zinc-300">
-                            Last checked {formatDate(snapshot.checkedAt)} ·{" "}
-                            {snapshot.available ? "In stock" : "Out of stock"}
-                          </p>
+                      <div className="flex min-w-0 flex-1 gap-4">
+                        {item.imageUrl ? (
+                          <CardThumbnail src={item.imageUrl} alt={item.title} />
                         ) : null}
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-amber-300 hover:text-amber-200"
-                        >
-                          View listing
-                        </a>
+                        <div className="min-w-0 space-y-2">
+                          <h3 className="text-lg font-medium text-zinc-50">{item.title}</h3>
+                          <p className="text-sm text-zinc-400">
+                            Added {formatDate(item.addedAt)}
+                          </p>
+                          {snapshot ? (
+                            <p className="text-sm text-zinc-300">
+                              Last checked {formatDate(snapshot.checkedAt)} ·{" "}
+                              {snapshot.available ? "In stock" : "Out of stock"}
+                            </p>
+                          ) : null}
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-amber-300 hover:text-amber-200"
+                          >
+                            View listing
+                          </a>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
                         {snapshot ? (
@@ -643,26 +644,31 @@ export default function TrackerApp() {
                 return (
                   <article
                     key={`${change.shopifyId}-${change.currentCheckedAt}`}
-                    className="rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5"
+                    className="overflow-visible rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="space-y-1">
-                        <h3 className="text-lg font-medium text-zinc-50">{change.title}</h3>
-                        {change.set ? (
-                          <p className="text-sm text-amber-300/80">{change.set}</p>
+                      <div className="flex min-w-0 flex-1 gap-4">
+                        {change.imageUrl ? (
+                          <CardThumbnail src={change.imageUrl} alt={change.title} />
                         ) : null}
-                        <p className="text-sm text-zinc-400">
-                          {formatDate(change.previousCheckedAt)} →{" "}
-                          {formatDate(change.currentCheckedAt)}
-                        </p>
-                        <a
-                          href={change.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm text-amber-300 hover:text-amber-200"
-                        >
-                          View listing
-                        </a>
+                        <div className="min-w-0 space-y-1">
+                          <h3 className="text-lg font-medium text-zinc-50">{change.title}</h3>
+                          {change.set ? (
+                            <p className="text-sm text-amber-300/80">{change.set}</p>
+                          ) : null}
+                          <p className="text-sm text-zinc-400">
+                            {formatDate(change.previousCheckedAt)} →{" "}
+                            {formatDate(change.currentCheckedAt)}
+                          </p>
+                          <a
+                            href={change.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-amber-300 hover:text-amber-200"
+                          >
+                            View listing
+                          </a>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className={`text-2xl font-semibold ${up ? "text-red-300" : "text-emerald-300"}`}>

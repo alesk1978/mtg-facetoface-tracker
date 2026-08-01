@@ -18,6 +18,7 @@ export interface WatchedProduct {
   handle: string;
   url: string;
   addedAt: string;
+  imageUrl: string | null;
 }
 
 export interface PriceSnapshot {
@@ -35,6 +36,7 @@ export interface PriceChange {
   handle: string;
   url: string;
   set: string | null;
+  imageUrl: string | null;
   previousPrice: number;
   currentPrice: number;
   delta: number;

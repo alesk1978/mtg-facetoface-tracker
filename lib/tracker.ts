@@ -14,6 +14,7 @@ export async function watchHandle(handle: string): Promise<CardListing> {
     listing.title,
     listing.handle,
     listing.productUrl,
+    listing.imageUrl,
   );
   await db.recordSnapshot(
     listing.shopifyId,
@@ -42,6 +43,7 @@ export async function checkPrices(): Promise<PriceSnapshot[]> {
       listing.title,
       listing.handle,
       listing.productUrl,
+      listing.imageUrl,
     );
     await db.recordSnapshot(
       listing.shopifyId,

@@ -51,6 +51,7 @@ function computeChange(
     handle: product.handle,
     url: product.url,
     set: parseSetFromTitle(product.title),
+    imageUrl: product.imageUrl,
     previousPrice: prevPrice,
     currentPrice: currPrice,
     delta,
@@ -85,6 +86,7 @@ export async function addToWatchlist(
   title: string,
   handle: string,
   url: string,
+  imageUrl: string | null = null,
 ): Promise<void> {
   const { error } = await getSupabase().from("watchlist").upsert(
     {
@@ -92,6 +94,7 @@ export async function addToWatchlist(
       title,
       handle,
       url,
+      image_url: imageUrl,
       added_at: utcNow(),
     },
     { onConflict: "shopify_id" },
@@ -112,7 +115,7 @@ export async function removeFromWatchlist(handle: string): Promise<boolean> {
 export async function listWatchlist(): Promise<WatchedProduct[]> {
   const { data, error } = await getSupabase()
     .from("watchlist")
-    .select("shopify_id, title, handle, url, added_at")
+    .select("shopify_id, title, handle, url, image_url, added_at")
     .order("title");
   if (error) throw new Error(error.message);
 
@@ -121,6 +124,7 @@ export async function listWatchlist(): Promise<WatchedProduct[]> {
     title: row.title,
     handle: row.handle,
     url: row.url,
+    imageUrl: row.image_url ? String(row.image_url) : null,
     addedAt: row.added_at,
   }));
 }

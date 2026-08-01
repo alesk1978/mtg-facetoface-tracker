@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
   title TEXT NOT NULL,
   handle TEXT NOT NULL UNIQUE,
   url TEXT NOT NULL,
+  image_url TEXT,
   added_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -20,3 +21,6 @@ CREATE TABLE IF NOT EXISTS price_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_product_time
   ON price_snapshots (shopify_id, checked_at DESC);
+
+-- Existing projects: run once if watchlist already exists without image_url
+-- ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS image_url TEXT;

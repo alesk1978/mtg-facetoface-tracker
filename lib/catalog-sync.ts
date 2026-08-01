@@ -188,6 +188,7 @@ export async function syncCatalogBatch(
       price: item.price,
       compare_at_price: item.compareAtPrice,
       available: item.available,
+      image_url: item.imageUrl,
     }));
 
     await upsertSnapshots(rows);
